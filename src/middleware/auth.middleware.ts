@@ -1,21 +1,22 @@
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import dotenv from "dotenv";
-dotenv.config();
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config";
 
 export interface AuthRequest extends Request {
-    user?: any;
+    user?: { id: number; role: string };
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Нет токена" });
+export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+    const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+    console.log(token,'tokenasfasfasfasfa');
+    if (!token) return res.status(401).json({ message: "Не авторизован" });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-        req.user = decoded;
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        console.log(decoded);
+        req.user = { id: decoded.id ?? decoded.userId ?? decoded.user?.id, role: decoded.role ?? decoded.user?.role };
         next();
     } catch (err) {
-        res.status(403).json({ message: "Недействительный токен" });
+        return res.status(401).json({ message: "Неверный токен" });
     }
-};
+}
