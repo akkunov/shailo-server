@@ -17,6 +17,9 @@ app.use(cookieParser());
 
 
 // публичные
+app.get('/', (req, res) => {
+    res.json({ ok: true })
+})
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/uiks", uikRoutes);
