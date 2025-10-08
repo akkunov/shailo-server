@@ -73,7 +73,7 @@ export const UserController = {
             const payload = req.body;
             console.log(req.user)
             const pass = 'Pass200042-'
-            const user = await UserService.create({ ...payload, role: Role.AGITATOR, coordinatorId: req.user.id, password:pass });
+            const user = await UserService.createAgitator({ ...payload, role: Role.AGITATOR, coordinatorId: req.user.id, password:pass });
             const { password, ...safe } = user as any;
             res.json(safe);
         } catch (err: any) {

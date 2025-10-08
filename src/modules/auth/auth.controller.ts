@@ -27,7 +27,7 @@ export const AuthController = {
             });
 
             const { password: pw, ...safe } = user as any;
-            res.json({ user: safe });
+            res.json({ user: safe, token });
         } catch (err: any) {
             res.status(400).json({ message: err.message });
         }

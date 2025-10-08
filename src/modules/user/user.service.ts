@@ -12,6 +12,16 @@ interface CreateUserInput {
     role?: Role;
     coordinatorId?: number | null;
 }
+interface CreateAgitatorInput {
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    phone: string;
+    pin: string;
+    password: string;
+    coordinatorId: number;
+    uikCodes?: number[];
+}
 
 export const UserService = {
     async create(input: CreateUserInput) {
@@ -29,6 +39,39 @@ export const UserService = {
                 role: input.role ?? Role.AGITATOR,
                 coordinatorId: input.coordinatorId ?? null,
             },
+        });
+    },
+
+    async createAgitator(input: CreateAgitatorInput) {
+        const bcrypt = await import("bcryptjs");
+        const hashed = await bcrypt.hash(input.password, 10);
+
+        // 1️⃣ Создаём агитатора
+        const agitator = await prisma.user.create({
+            data: {
+                firstName: input.firstName,
+                lastName: input.lastName,
+                middleName: input.middleName,
+                phone: input.phone,
+                pin: input.pin,
+                password: hashed,
+                role: Role.AGITATOR,
+                coordinatorId: input.coordinatorId,
+            },
+        });
+
+        // 2️⃣ Привязываем к УИКам (если есть)
+        if (input.uikCodes?.length) {
+            const data = input.uikCodes.map((code) => ({
+                userId: agitator.id,
+                uikCode: code,
+            }));
+            await prisma.userUIK.createMany({ data, skipDuplicates: true });
+        }
+
+        return prisma.user.findUnique({
+            where: { id: agitator.id },
+            include: { uiks: { include: { uik: true } } },
         });
     },
 

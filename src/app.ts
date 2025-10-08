@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from 'cookie-parser'
 import authRoutes from "./modules/auth/auth.routes";
-import { authMiddleware } from "./middleware/auth.middleware";
 import userRoutes from "./modules/user/user.routes";
 import uikRoutes from "./modules/uik/uik.routes";
 import voterRoutes from "./modules/voter/voter.routes";
@@ -17,9 +16,6 @@ app.use(cookieParser());
 
 
 // публичные
-app.get('/', (req, res) => {
-    res.json({ ok: true })
-})
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/uiks", uikRoutes);
