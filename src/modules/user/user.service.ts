@@ -20,7 +20,7 @@ interface CreateAgitatorInput {
     pin: string;
     password: string;
     coordinatorId: number;
-    uikCodes?: number[];
+    userUIKS?: number[];
 }
 
 export const UserService = {
@@ -61,8 +61,8 @@ export const UserService = {
         });
 
         // 2️⃣ Привязываем к УИКам (если есть)
-        if (input.uikCodes?.length) {
-            const data = input.uikCodes.map((code) => ({
+        if (input.userUIKS?.length) {
+            const data = input.userUIKS.map((code) => ({
                 userId: agitator.id,
                 uikCode: code,
             }));
@@ -86,7 +86,26 @@ export const UserService = {
             include: { uiks: { include: { uik: true } } },
         });
     },
+    async getCoordinatorVoters (coordinatorId:number) {
+        const agitators = await prisma.user.findMany({
+            where: { coordinatorId },
+            select: { id: true },
+        });
 
+        const agitatorIds = agitators.map(a => a.id);
+
+        // Вытащим всех избирателей, добавленных этими агитаторами
+        const voters = await prisma.voter.findMany({
+            where: { addedById: { in: agitatorIds } },
+            include: {
+                addedBy: true, // чтобы видеть, кто добавил
+                uik: true,     // чтобы видеть, из какого УИК
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        return voters;
+    },
     async getCoordinators() {
         // Возвращаем только корреспондентов (админ видит всех)
         return prisma.user.findMany({

@@ -55,7 +55,7 @@ model Voter {
   firstName  String
   lastName   String
   middleName String?
-  phone      String?
+  phone      String?  @unique
   address    String?
   pin        String?
   createdAt  DateTime @default(now())

@@ -8,9 +8,7 @@ export interface AuthRequest extends Request {
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
     const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-    console.log(req.cookies.token, 'cookie')
-    console.log(req.headers.authorization?.split(" ")[1])
-    console.log(token,'tokenasfasfasfasfa');
+    console.log(token)
     if (!token) return res.status(401).json({ message: "Не авторизован" });
 
     try {

@@ -19,9 +19,12 @@ export const VoterService = {
     },
 
     async listByUser(userId: number) {
-        return prisma.voter.findMany({ where: { addedById: userId }, include: { uik: true } });
+        return prisma.voter.findMany({ where: { addedById: userId }, include: { uik: true, addedBy: true } });
     },
 
+    async findVoterByPhone(phone: string) {
+        return prisma.voter.findFirst({ where: { phone } });
+    },
     async listByUik(uikCode: number) {
         return prisma.voter.findMany({ where: { uikCode } });
     },

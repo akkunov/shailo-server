@@ -153,4 +153,13 @@ export const UserController = {
             res.status(400).json({ message: err.message });
         }
     },
+    async getCoordinatorsVoters (req:AuthRequest, res:Response) {
+        try{
+            const coordinatorId = Number(req.params.id)
+            const voters = await UserService.getCoordinatorVoters(coordinatorId);
+            res.json(voters)
+        }catch (arr:any){
+            res.status(400).json({message:arr.message})
+        }
+    }
 };

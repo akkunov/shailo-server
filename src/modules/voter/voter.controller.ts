@@ -1,5 +1,5 @@
 
-import { Request, Response } from "express";
+import { Response } from "express";
 import { VoterService } from "./voter.service";
 import {AuthRequest} from "../../middleware/auth.middleware";
 
@@ -12,6 +12,8 @@ export const VoterController = {
             if (!allowedRoles.includes(req.user.role)) return res.status(403).json({ message: "Нет доступа" });
 
             const payload = { ...req.body, addedById: req.user.id };
+            const phone = await VoterService.findVoterByPhone(payload.phone);
+            if(req.body.phone == phone) return res.status(400).json({ message: "Такой номер уже существует" });
             const voter = await VoterService.create(payload);
             res.json(voter);
         } catch (err: any) {
