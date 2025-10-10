@@ -20,7 +20,7 @@ interface CreateAgitatorInput {
     pin: string;
     password: string;
     coordinatorId: number;
-    userUIKS?: number[];
+    uiks?: number[];
 }
 
 export const UserService = {
@@ -61,8 +61,8 @@ export const UserService = {
         });
 
         // 2️⃣ Привязываем к УИКам (если есть)
-        if (input.userUIKS?.length) {
-            const data = input.userUIKS.map((code) => ({
+        if (input.uiks?.length) {
+            const data = input.uiks.map((code) => ({
                 userId: agitator.id,
                 uikCode: code,
             }));

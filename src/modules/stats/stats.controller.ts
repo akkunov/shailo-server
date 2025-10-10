@@ -62,22 +62,19 @@ export const StatsController = {
     /** ✅ Агрегированные данные (для графиков) */
     async aggregate(req: AuthRequest, res: Response) {
         try {
-            const type = req.query.type as string;
+            const { type } = req.query;
 
             if (type === "user") {
                 const data = await StatsService.aggregateByUser();
                 return res.json(data);
-            }
-
-            if (type === "uik") {
+            } else if (type === "uik") {
                 const data = await StatsService.aggregateByUik();
                 return res.json(data);
+            } else {
+                return res.status(400).json({ message: "Invalid type" });
             }
-
-            res.status(400).json({ message: "Некорректный тип агрегации" });
         } catch (err: any) {
-            console.error(err);
-            res.status(500).json({ message: "Ошибка при агрегации данных" });
+            return res.status(500).json({ message: err.message });
         }
     },
 };

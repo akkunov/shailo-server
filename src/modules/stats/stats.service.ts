@@ -18,7 +18,16 @@ export const StatsService = {
         return prisma.stats.findMany({
             where: { userId },
             orderBy: { date: "asc" },
-            include: { uik: true },
+            include: { uik: true,
+                user: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        role: true,
+                    },
+                },
+            },
         });
     },
 
@@ -61,11 +70,24 @@ export const StatsService = {
 
     /** ✅ Группировка по агитаторам */
     async aggregateByUser() {
-        return prisma.stats.groupBy({
+        const grouped = await prisma.stats.groupBy({
             by: ["userId"],
             _sum: { votersAdded: true },
             orderBy: { _sum: { votersAdded: "desc" } },
         });
+
+        // 2. Получаем пользователей, которые нужны
+        const userIds = grouped.map(g => g.userId);
+        const users = await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, firstName: true, lastName: true, phone: true }
+        });
+
+        // 3. Сочетаем статистику с данными пользователя
+        return grouped.map(g => ({
+            ...g,
+            user: users.find(u => u.id === g.userId),
+        }));
     },
 
     /** ✅ Группировка по УИКам */
