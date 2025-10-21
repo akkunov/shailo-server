@@ -27,7 +27,6 @@ interface CreateAgitatorInput {
 export const UserService = {
     async create(input: CreateUserInput) {
         // reuse AuthService.register logic? duplicating for clarity
-        const bcrypt = await import("bcryptjs");
         const hashed = await bcrypt.hash(input.password, 10);
         return prisma.user.create({
             data: {
@@ -44,7 +43,6 @@ export const UserService = {
     },
 
     async createAgitator(input: CreateAgitatorInput) {
-        const bcrypt = await import("bcryptjs");
         const hashed = await bcrypt.hash(input.password, 10);
 
         // 1️⃣ Создаём агитатора
@@ -146,7 +144,6 @@ export const UserService = {
         // prevent updating password here directly; handle separate endpoint if needed
         const updateData: any = { ...data };
         if (data.password) {
-            const bcrypt = await import("bcryptjs");
             updateData.password = await bcrypt.hash(data.password, 10);
         }
         return prisma.user.update({ where: { id }, data: updateData });
@@ -158,12 +155,5 @@ export const UserService = {
         // Потом удалить самого пользователя
         return prisma.user.delete({ where: { id } });
     },
-    async reset (userId: number, password:string) {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) throw new Error("Пользователь не найден");
-        const hashed = await bcrypt.hash(password, 10);
-        if (hashed != user.password) throw new Error("Неверный пароль");
-        if (hashed == user.password) throw new Error("Новый пароль не может быть похожим на старый!");
-        return prisma.user.update({ where: { id: userId }, data: { password: hashed } });
-    }
+
 };

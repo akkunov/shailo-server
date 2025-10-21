@@ -31,7 +31,7 @@ export const AuthService = {
                 coordinatorId: input.coordinatorId ?? null,
             },
         });
-        return user;
+         user;
     },
 
     async login(phone: string, password: string) {
@@ -47,5 +47,27 @@ export const AuthService = {
     async me(userId: number) {
         return prisma.user.findUnique({ where: { id: userId } });
     },
+    async reset (id: number, oldPassword:string ,newPassword:string) {
+        const user = await prisma.user.findUnique({ where: { id } });
+        if (!user) throw new Error("Пользователь не найден");
+        // Если передан старый пароль — проверим его
+        const hashedNewPass = await bcrypt.hash(oldPassword, 10);
+        console.log(user.password, hashedNewPass)
+        if (oldPassword) {
+            const valid = await bcrypt.compare(oldPassword, user.password);
+            if (!valid) throw new Error("Неверный старый пароль");
+        }
+
+        // Проверка, что новый пароль не совпадает со старым (по смыслу)
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) throw new Error("Новый пароль не может совпадать со старым");
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+
+        return prisma.user.update({
+            where: { id },
+            data: { password: hashed },
+        });
+    }
 
 };

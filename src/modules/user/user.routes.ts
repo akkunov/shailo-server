@@ -18,6 +18,5 @@ router.get("/agitators", authMiddleware, UserController.listAgitators);
 router.get("/:id", authMiddleware, UserController.getUser);
 router.put("/:id", authMiddleware, UserController.updateUser);
 router.delete("/:id", authMiddleware, UserController.deleteUser);
-router.put("/reset", authMiddleware, UserController.reset);
 
 export default router;

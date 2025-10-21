@@ -2,7 +2,6 @@ import { Response } from "express";
 import { UserService } from "./user.service";
 import { Role } from "@prisma/client";
 import {AuthRequest} from "../../middleware/auth.middleware";
-import {AuthService} from "../auth/auth.service";
 
 export const UserController = {
     // Admin creates coordinator
@@ -163,16 +162,5 @@ export const UserController = {
             res.status(400).json({message:arr.message})
         }
     },
-    async reset (req:AuthRequest, res:Response) {
-        try {
-            if (!req.user) return res.status(401).json({ message: "Не авторизован" });
-            const {id} = req.user
-            if (!id) return res.status(400).json({ message: "User not found" });
-            const password   = req.body.password
-            const data  = await UserService.reset(id, password);
-            res.json(data);
-        } catch (err: any) {
-            res.status(400).json({ message: err.message });
-        }
-    }
+
 };

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import { COOKIE_NAME, COOKIE_MAX_AGE } from "../../config";
+import {AuthRequest} from "../../middleware/auth.middleware";
 
 export const AuthController = {
     async register(req: Request, res: Response) {
@@ -46,4 +47,17 @@ export const AuthController = {
             res.status(400).json({ message: err.message });
         }
     },
+    async reset (req:AuthRequest, res:Response) {
+        try {
+            if (!req.user) return res.status(401).json({ message: "Не авторизован" });
+            const {id} = req.user
+            if (!id) return res.status(400).json({ message: "User not found" });
+            const {oldPassword, newPassword}   = req.body;
+            console.log(oldPassword, newPassword)
+            const data  = await AuthService.reset(id, oldPassword, newPassword);
+            res.json(data);
+        } catch (err: any) {
+            res.status(400).json({ message: err.message });
+        }
+    }
 };
