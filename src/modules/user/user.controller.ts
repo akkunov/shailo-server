@@ -10,6 +10,7 @@ export const UserController = {
             if (req.user?.role !== "ADMIN") return res.status(403).json({ message: "Нет доступа" });
 
             const payload = req.body;
+            console.log(req.body)
             const user = await UserService.create({ ...payload, role: Role.COORDINATOR });
             const { password, ...safe } = user as any;
             res.json(safe);
