@@ -1,5 +1,5 @@
-import {prisma} from "../../prisma/prisma";
-
+import { prisma } from "../../prisma/prisma";
+import { Role } from "@prisma/client";
 
 export const UikService = {
     async create(code: number, name: string) {
@@ -7,12 +7,34 @@ export const UikService = {
     },
 
     async createMany(items: { code: number; name: string }[]) {
-        // convert to createMany accepts objects matching model
         return prisma.uIK.createMany({ data: items, skipDuplicates: true });
     },
 
-    async list() {
-        return prisma.uIK.findMany();
+    // 🔥 Теперь фильтруем по роли
+    async list(userId: number, role: string) {
+        // Если это админ или координатор — показываем все
+        if (role === Role.ADMIN || role === Role.COORDINATOR) {
+            return prisma.uIK.findMany({
+                orderBy: { code: "asc" },
+            });
+        }
+
+        // Если это агитатор — только его УИКи
+        if (role === Role.AGITATOR) {
+            return prisma.uIK.findMany({
+                where: {
+                    users: {
+                        some: {
+                            userId,
+                        },
+                    },
+                },
+                orderBy: { code: "asc" },
+            });
+        }
+
+        // На всякий случай: если неизвестная роль
+        return [];
     },
 
     async getByCode(code: number) {
@@ -27,5 +49,3 @@ export const UikService = {
         return prisma.uIK.delete({ where: { code } });
     },
 };
-
-

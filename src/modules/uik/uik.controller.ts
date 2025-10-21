@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UikService } from "./uik.service";
+import {AuthRequest} from "../../middleware/auth.middleware";
 
 export const UikController = {
     async create(req: Request, res: Response) {
@@ -22,9 +23,12 @@ export const UikController = {
         }
     },
 
-    async list(req: Request, res: Response) {
+    async list(req: AuthRequest, res: Response) {
         console.log("list");
-        const list = await UikService.list();
+        const id = req.user?.id
+        const role = req.user?.role
+        if (!id || !role)  return res.status(401).json({ message: "Unauthorized" });
+        const list = await UikService.list(id, role);
         res.json(list);
     },
 
