@@ -24,7 +24,6 @@ export const UikController = {
     },
 
     async list(req: AuthRequest, res: Response) {
-        console.log("list");
         const id = req.user?.id
         const role = req.user?.role
         if (!id || !role)  return res.status(401).json({ message: "Unauthorized" });
