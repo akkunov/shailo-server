@@ -30,7 +30,29 @@ export const VoterService = {
     },
 
     async remove(id: number) {
-        return prisma.voter.delete({ where: { id } });
+        const voter = await prisma.voter.findUnique({
+            where: { id: id },
+        });
+
+        if (!voter) throw new Error("Избиратель не найден");
+
+        // Удаляем избирателя
+        await prisma.voter.delete({ where: { id: id } });
+        await prisma.stats.updateMany({
+            where: {
+                userId: voter.addedById,
+                uikCode: voter.uikCode,
+                date: {
+                    gte: new Date(new Date().setHours(0, 0, 0, 0)), // Сегодняшняя дата
+                    lte: new Date(new Date().setHours(23, 59, 59, 999)),
+                },
+            },
+            data: {
+                votersAdded: { decrement: 1 },
+            },
+        });
+
+        return { success: true };
     },
 
     async update(id: number, data: Partial<VoterInput>) {
