@@ -37,7 +37,6 @@ export const AuthController = {
         res.clearCookie(COOKIE_NAME);
         res.json({ message: "Logged out" });
     },
-
     async me(req: any, res: Response) {
         try {
             const user = await AuthService.me(req.user.id);

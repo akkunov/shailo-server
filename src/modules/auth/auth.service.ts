@@ -47,4 +47,5 @@ export const AuthService = {
     async me(userId: number) {
         return prisma.user.findUnique({ where: { id: userId } });
     },
+
 };

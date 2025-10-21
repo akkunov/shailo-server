@@ -1,6 +1,7 @@
 
 import { Role } from "@prisma/client";
 import {prisma} from "../../prisma/prisma";
+import bcrypt from "bcryptjs";
 
 interface CreateUserInput {
     firstName: string;
@@ -157,4 +158,12 @@ export const UserService = {
         // Потом удалить самого пользователя
         return prisma.user.delete({ where: { id } });
     },
+    async reset (userId: number, password:string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error("Пользователь не найден");
+        const hashed = await bcrypt.hash(password, 10);
+        if (hashed != user.password) throw new Error("Неверный пароль");
+        if (hashed == user.password) throw new Error("Новый пароль не может быть похожим на старый!");
+        return prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    }
 };
