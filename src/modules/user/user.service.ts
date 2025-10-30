@@ -140,15 +140,39 @@ export const UserService = {
         return prisma.user.findUnique({ where: { id }, include: { uiks: { include: { uik: true } } } });
     },
 
-    async update(id: number, data: Partial<CreateUserInput>) {
-        // prevent updating password here directly; handle separate endpoint if needed
-        const updateData: any = { ...data };
-        if (data.password) {
-            updateData.password = await bcrypt.hash(data.password, 10);
-        }
-        return prisma.user.update({ where: { id }, data: updateData });
-    },
+    async update(id: number, data: Partial<CreateUserInput> & { uiks?: number[] }) {
+        // Разделяем поля пользователя и УИКи
+        const { uiks, ...userData } = data;
 
+        // 1️⃣ Обновляем поля пользователя
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: userData,
+        });
+
+        // 2️⃣ Обновляем привязку к УИКам, если пришли
+        if (uiks) {
+            // Удаляем те, которых нет в новом массиве
+            await prisma.userUIK.deleteMany({
+                where: {
+                    userId: id,
+                    NOT: {
+                        uikCode: { in: uiks },
+                    },
+                },
+            });
+
+            // Добавляем новые (skipDuplicates чтобы не создавать дубликаты)
+            const dataToInsert = uiks.map((code) => ({ userId: id, uikCode: code }));
+            await prisma.userUIK.createMany({ data: dataToInsert, skipDuplicates: true });
+        }
+
+        // 3️⃣ Возвращаем обновленного пользователя с актуальными УИКами
+        return prisma.user.findUnique({
+            where: { id },
+            include: { uiks: { include: { uik: true } } },
+        });
+    },
     async remove(id: number) {
         await prisma.userUIK.deleteMany({ where: { userId: id } });
 

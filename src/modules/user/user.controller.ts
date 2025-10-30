@@ -138,8 +138,7 @@ export const UserController = {
             const id = Number(req.params.id);
             // only admin or self or coordinator (for their agitators) can update — implement as needed
             const updated = await UserService.update(id, req.body);
-            const { password, ...safe } = updated as any;
-            res.json(safe);
+            res.json(updated);
         } catch (err: any) {
             res.status(400).json({ message: err.message });
         }
