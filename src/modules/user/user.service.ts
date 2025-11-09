@@ -1,5 +1,5 @@
 
-import { Role } from "@prisma/client";
+import { Prisma, Role} from "@prisma/client";
 import {prisma} from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
 
@@ -43,6 +43,12 @@ export const UserService = {
     },
 
     async createAgitator(input: CreateAgitatorInput) {
+
+        const existingUser = await prisma.user.findMany({ where: { phone: input.phone } });
+        if (existingUser.length) {
+            // выбрасываем ошибку вместо простого return
+            throw new Error("Пользователь уже существует");
+        }
         const hashed = await bcrypt.hash(input.password, 10);
 
         // 1️⃣ Создаём агитатора
@@ -180,4 +186,29 @@ export const UserService = {
         return prisma.user.delete({ where: { id } });
     },
 
+    async searchAgitators(query: { search?: string; skip?: number; take?: number }) {
+        const { search, skip = 0, take = 20 } = query;
+
+        const where: Prisma.UserWhereInput = {
+            role: Role.AGITATOR,
+            ...(search
+                ? {
+                    OR: [
+                        { firstName: { contains: search, mode: "insensitive" } },
+                        { lastName: { contains: search, mode: "insensitive" } },
+                        { middleName: { contains: search, mode: "insensitive" } },
+                        { phone: { contains: search } },
+                    ],
+                }
+                : {}),
+        };
+
+        return prisma.user.findMany({
+            where,
+            skip,
+            take,
+            include: { uiks: { include: { uik: true } } },
+            orderBy: { lastName: "asc" },
+        });
+    }
 };

@@ -1,3 +1,4 @@
+import {Prisma} from "@prisma/client";
 import {prisma} from "../../prisma/prisma";
 
 
@@ -15,6 +16,12 @@ interface VoterInput {
 export const VoterService = {
     async create(input: VoterInput) {
         // optional: check uik exists
+        const existingVoter = await prisma.voter.findMany({ where: {phone:input.phone } });
+        if (existingVoter.length) {
+            // выбрасываем ошибку вместо простого return
+            throw new Error("Пользователь уже существует");
+        }
+
         return prisma.voter.create({ data: input });
     },
 
@@ -58,4 +65,28 @@ export const VoterService = {
     async update(id: number, data: Partial<VoterInput>) {
         return prisma.voter.update({ where: { id }, data });
     },
+
+    async searchVoters(query: { search?: string; skip?: number; take?: number }) {
+        const { search, skip = 0, take = 20 } = query;
+
+        const where: Prisma.VoterWhereInput = {
+            ...(search
+                ? {
+                    OR: [
+                        { firstName: { contains: search, mode: "insensitive" } },
+                        { lastName: { contains: search, mode: "insensitive" } },
+                        { middleName: { contains: search, mode: "insensitive" } },
+                        { phone: { contains: search } },
+                    ],
+                }
+                : {}),
+        };
+
+        return prisma.voter.findMany({
+            where,
+            skip,
+            take,
+            orderBy: { lastName: "asc" },
+        });
+    }
 };

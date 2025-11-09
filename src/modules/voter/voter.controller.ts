@@ -60,4 +60,24 @@ export const VoterController = {
             res.status(400).json({ message: err.message });
         }
     },
+
+    async  SearchVoters(req: AuthRequest, res: Response) {
+        try {
+            if (!["COORDINATOR", "AGITATOR"].includes(req.user?.role || ""))
+                return res.status(403).json({ message: "Нет доступа" });
+
+            const { search, skip, take } = req.query;
+            const voters = await VoterService.searchVoters({
+                search: search as string | undefined,
+                skip: Number(skip) || 0,
+                take: Number(take) || 20,
+            });
+
+            res.json(voters);
+        } catch (err: any) {
+            res.status(400).json({ message: err.message });
+        }
+    }
+
+
 };

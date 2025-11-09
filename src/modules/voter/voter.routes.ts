@@ -11,5 +11,6 @@ router.get("/me", authMiddleware, VoterController.listMine);
 router.get("/uik/:code", authMiddleware, VoterController.listByUik);
 router.put("/:id", authMiddleware, VoterController.update);
 router.delete("/:id", authMiddleware, VoterController.remove);
+router.get("/Search", authMiddleware, VoterController.SearchVoters);
 
 export default router;
