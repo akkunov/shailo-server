@@ -1,7 +1,8 @@
-
+import {prisma} from "../../prisma/prisma";
 import { Response } from "express";
 import { VoterService } from "./voter.service";
 import {AuthRequest} from "../../middleware/auth.middleware";
+import ExcelJS from 'exceljs'
 
 export const VoterController = {
     async createVoter(req: AuthRequest, res: Response) {
@@ -77,7 +78,83 @@ export const VoterController = {
         } catch (err: any) {
             res.status(400).json({ message: err.message });
         }
-    }
+    },
 
+    async exportVotersByUIK (req: AuthRequest, res: Response) {
+        try {
+            // --- 1️⃣ Получаем УИКи с количеством избирателей ---
+            const uiks = await prisma.uIK.findMany({
+                include: {
+                    voters: true, // связь "уик → избиратели"
+                },
+            });
+
+            // --- 2️⃣ Готовим данные ---
+            const rows = uiks.map(uik => ({
+                uikCode: uik.code,
+                uikName: uik.name,
+                voterCount: uik.voters.length,
+            }));
+
+            // --- 3️⃣ Создаем workbook ---
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet("Количество избирателей");
+
+            sheet.columns = [
+                { header: "Код УИКа", key: "uikCode", width: 12 },
+                { header: "Название УИКа", key: "uikName", width: 35 },
+                { header: "Координатор", key: "coordinator", width: 30 },
+                { header: "Количество избирателей", key: "voterCount", width: 25 },
+            ];
+
+            sheet.addRows(rows);
+            sheet.getRow(1).font = { bold: true };
+
+            // --- 4️⃣ Добавляем итоговую строку ---
+            const totalRow = sheet.addRow({
+                uikCode: "Итого",
+                voterCount: { formula: `SUM(D2:D${rows.length + 1})` },
+            });
+            totalRow.font = { bold: true };
+            totalRow.alignment = { horizontal: "right" };
+
+            // --- 5️⃣ Стилизация таблицы ---
+            sheet.eachRow(row => {
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: { style: "thin" },
+                        left: { style: "thin" },
+                        bottom: { style: "thin" },
+                        right: { style: "thin" },
+                    };
+                    cell.alignment = { vertical: "middle", horizontal: "center" };
+                });
+            });
+
+            // --- 6️⃣ Создаем дополнительный лист с таблицей для диаграммы ---
+            const chartSheet = workbook.addWorksheet("Диаграмма");
+            chartSheet.addRow(["УИК", "Количество избирателей"]);
+            rows.forEach(r => chartSheet.addRow([r.uikName, r.voterCount]));
+
+            // ExcelJS не поддерживает встроенные диаграммы —
+            // но таблица готова, и Excel может построить график вручную по данным.
+
+            // --- 7️⃣ Отправка файла ---
+            res.setHeader(
+                "Content-Type",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="voters_by_uik.xlsx"`
+            );
+
+            await workbook.xlsx.write(res);
+            res.end();
+        } catch (error) {
+            console.error("Ошибка при экспорте избирателей:", error);
+            res.status(500).json({ message: "Ошибка при генерации файла" });
+        }
+    }
 
 };
