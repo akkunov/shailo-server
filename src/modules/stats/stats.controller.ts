@@ -77,4 +77,26 @@ export const StatsController = {
             return res.status(500).json({ message: err.message });
         }
     },
+    async getAgitatorStats(req: AuthRequest, res: Response) {
+        try {
+            const { skip, take, coordinatorId, uikFilter, dateFrom, dateTo } = req.query;
+
+            // Приведение типов
+            const query = {
+                skip: Number(skip) || 0,
+                take: Number(take) || 10,
+                coordinatorId: coordinatorId ? Number(coordinatorId) : undefined,
+                uikFilter: uikFilter ? (Array.isArray(uikFilter) ? uikFilter.map(Number) : [Number(uikFilter)]) : undefined,
+                dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+                dateTo: dateTo ? new Date(dateTo as string) : undefined,
+            };
+
+            const stats = await StatsService.getAgitatorStats(query);
+
+            res.json(stats);
+        } catch (error: any) {
+            console.error("Ошибка получения статистики агитаторов:", error);
+            res.status(500).json({ message: "Ошибка получения статистики" });
+        }
+    },
 };

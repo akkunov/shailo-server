@@ -38,6 +38,7 @@ export const AuthService = {
         const user = await prisma.user.findUnique({ where: { phone } });
         if (!user) throw new Error("Пользователь не найден");
         const ok = await bcrypt.compare(password, user.password);
+        console.log(password)
         if (!ok) throw new Error("Неверный пароль");
 
         const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });

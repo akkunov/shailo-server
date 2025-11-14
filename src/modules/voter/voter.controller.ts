@@ -79,6 +79,18 @@ export const VoterController = {
             res.status(400).json({ message: err.message });
         }
     },
+    async votersSum(req:AuthRequest, res:Response){
+
+        // 🔹 Получаем агитаторов и их УИКи
+        const users = await prisma.voter.count();
+
+        const countAgitators = await prisma.user.count({
+            where: { role: "AGITATOR" },
+        });
+
+        console.log(countAgitators);
+        res.json({users})
+    },
 
     async exportVotersByUIK (req: AuthRequest, res: Response) {
         try {

@@ -210,5 +210,26 @@ export const UserService = {
             include: { uiks: { include: { uik: true } } },
             orderBy: { lastName: "asc" },
         });
+    },
+    async  resetPassword(phone: string) {
+        const user = await prisma.user.findUnique({ where: { phone } });
+        if (!user) {
+            throw new Error("Такого пользователя нет!");
+        }
+
+        const defaultPassword = "Pass200042-";
+        const hashed = await bcrypt.hash(defaultPassword, 10);
+
+        // 🔹 обновляем запись в БД
+        const updatedUser = await prisma.user.update({
+            where: { phone },
+            data: { password: hashed },
+        });
+
+        return {
+            message: "Пароль успешно сброшен!",
+            user: updatedUser,
+            defaultPassword, // можешь вернуть только если нужно показать админу
+        };
     }
 };

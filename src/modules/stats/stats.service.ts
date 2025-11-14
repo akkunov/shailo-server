@@ -1,6 +1,78 @@
 import { prisma } from "../../prisma/prisma";
 
+interface StatsQuery {
+    skip?: number;
+    take?: number;
+    coordinatorId?: number;
+    uikFilter?: number[];
+    dateFrom?: Date;
+    dateTo?: Date;
+}
+
+
 export const StatsService = {
+    async getAgitatorStats(query: StatsQuery) {
+        const {
+            skip = 0,
+            take = 10,
+            coordinatorId,
+            uikFilter,
+            dateFrom,
+            dateTo,
+        } = query;
+
+        // 1️⃣ Общий фильтр для подсчёта totalAgitators с учётом фильтров
+        const baseFilter: any = {
+            role: "AGITATOR",
+            coordinatorId: coordinatorId || undefined,
+            createdAt: {
+                gte: dateFrom ? new Date(dateFrom) : undefined,
+                lte: dateTo ? new Date(dateTo) : undefined,
+            },
+            uiks: uikFilter
+                ? { some: { uikCode: { in: uikFilter } } }
+                : undefined,
+        };
+
+        // 2️⃣ Получаем общее количество агитаторов по фильтрам
+        const totalAgitators = await prisma.user.count({ where: baseFilter });
+
+        // 3️⃣ Получаем агитаторов с фильтрацией и пагинацией
+        const agitators = await prisma.user.findMany({
+            where: baseFilter,
+            take,
+            skip,
+            orderBy: { firstName: "asc" },
+            include: {
+                voters: true,
+                uiks: { include: { uik: true } },
+                coordinator: true,
+            },
+        });
+
+        // 4️⃣ Общее количество избирателей для всех агитаторов с фильтрацией
+        const totalVoters = await prisma.voter.count();
+
+        // 5️⃣ Формируем результат
+        const data = agitators.map(u => ({
+            id: u.id,
+            name: `${u.lastName} ${u.firstName} ${u.middleName || ""}`.trim(),
+            coordinator: u.coordinator
+                ? `${u.coordinator.lastName} ${u.coordinator.firstName}`
+                : null,
+            votersCount: u.voters.length,
+            voters: u.voters,
+            uiks: u.uiks.map(x => x.uik),
+        }));
+
+        return {
+            totalAgitators,
+            totalVoters,
+            data,
+            skip,
+            take,
+        };
+    },
     async upsertDaily(userId: number, uikCode: number, date: Date, count: number) {
         const day = new Date(date);
         day.setHours(0, 0, 0, 0);
@@ -98,4 +170,6 @@ export const StatsService = {
             orderBy: { _sum: { votersAdded: "desc" } },
         });
     },
+
+
 };

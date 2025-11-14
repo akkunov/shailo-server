@@ -307,12 +307,18 @@ export const UserController = {
         }
     },
     async AgitSumm(req:AuthRequest, res:Response){
+
+        // 🔹 Получаем агитаторов и их УИКи
+        const users = await prisma.user.count({
+            where: {
+                role: "AGITATOR",
+            }
+        });
+
         const countAgitators = await prisma.user.count({
             where: { role: "AGITATOR" },
         });
-
-        console.log(countAgitators);
-        res.json(countAgitators)
+        res.json({countAgitators, users})
     },
 
     async Search(req:AuthRequest, res:Response){
@@ -328,5 +334,154 @@ export const UserController = {
         } catch (err: any) {
             res.status(400).json({ message: err.message });
         }
-}
+},
+     async exportAgitatorsBySpecificUIKs (req: AuthRequest, res: Response) {
+        try {
+            // 🔹 Целевые УИКи
+            const targetUikCodes = [5497,5070,5071,5072,5073,5074,5075,5455,5437];
+
+            // 🔹 Получаем агитаторов и их УИКи
+            const users = await prisma.user.findMany({
+                where: {
+                    role: "AGITATOR",
+                    uiks: {
+                        some: { uik: { code: { in: targetUikCodes } } },
+                    },
+                },
+                include: {
+                    uiks: { include: { uik: true } },
+                    coordinator: true,
+                },
+            });
+
+            const workbook = new ExcelJS.Workbook();
+
+            const rows = users
+                .map((user) => {
+                    const coordName = user.coordinator
+                        ? `${user.coordinator.lastName} ${user.coordinator.firstName}`
+                        : "—";
+
+                    const firstUik = user.uiks.find((uu) =>
+                        targetUikCodes.includes(uu.uik.code)
+                    );
+
+                    return {
+                        id: user.id,
+                        fullName: `${user.lastName} ${user.firstName} ${user.middleName || ""}`.trim(),
+                        phone: user.phone,
+                        pin: user.pin,
+                        uikCode: firstUik?.uik.code ?? 0,
+                        uikName: firstUik?.uik.name ?? "—",
+                        coordinator: coordName,
+                    };
+                })
+                .sort((a, b) => a.uikCode - b.uikCode); // 🔹 сортировка по числу УИКа
+            const dataSheet = workbook.addWorksheet("Агитаторы");
+            dataSheet.columns = [
+                { header: "ID", key: "id", width: 8 },
+                { header: "ФИО", key: "fullName", width: 30 },
+                { header: "Телефон", key: "phone", width: 15 },
+                { header: "PIN", key: "pin", width: 15 },
+                { header: "Код УИКа", key: "uikCode", width: 12 },
+                { header: "Название УИКа", key: "uikName", width: 35 },
+                { header: "Координатор", key: "coordinator", width: 25 },
+            ];
+            dataSheet.addRows(rows);
+            dataSheet.getRow(1).font = { bold: true };
+
+            // --- 2️⃣ Лист "Статистика"
+            type UikInfo = { name: string; count: number; coordinators: string[] };
+            const uikStats = new Map<number, UikInfo>();
+
+            users.forEach((user) => {
+                const coordName = user.coordinator
+                    ? `${user.coordinator.lastName} ${user.coordinator.firstName}`
+                    : "—";
+
+                user.uiks.forEach((uu) => {
+                    if (!targetUikCodes.includes(uu.uik.code)) return;
+
+                    if (!uikStats.has(uu.uik.code)) {
+                        uikStats.set(uu.uik.code, { name: uu.uik.name, count: 0, coordinators: [] });
+                    }
+                    const entry = uikStats.get(uu.uik.code)!;
+                    entry.count += 1;
+                    if (!entry.coordinators.includes(coordName)) entry.coordinators.push(coordName);
+                });
+            });
+
+            const statsData = Array.from(uikStats.entries())
+                .sort((a, b) => a[0] - b[0])
+                .map(([code, { name, count, coordinators }]) => ({
+                    uikCode: code,
+                    uikName: name,
+                    count,
+                    coordinators: coordinators.join(", "),
+                }));
+
+            const statsSheet = workbook.addWorksheet("Статистика");
+            statsSheet.columns = [
+                { header: "Код УИКа", key: "uikCode", width: 12 },
+                { header: "Название УИКа", key: "uikName", width: 35 },
+                { header: "Количество агитаторов", key: "count", width: 25 },
+                { header: "Координаторы", key: "coordinators", width: 40 },
+            ];
+            statsSheet.addRows(statsData);
+            statsSheet.getRow(1).font = { bold: true };
+
+            // --- 3️⃣ Итого
+            const totalRow = statsSheet.addRow({
+                uikCode: "Итого",
+                count: { formula: `SUM(C2:C${statsData.length + 1})` },
+            });
+            totalRow.font = { bold: true };
+            totalRow.alignment = { horizontal: "right" };
+
+            // --- 4️⃣ Стили
+            statsSheet.eachRow((row) => {
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: "thin" },
+                        left: { style: "thin" },
+                        bottom: { style: "thin" },
+                        right: { style: "thin" },
+                    };
+                    cell.alignment = { vertical: "middle", horizontal: "center" };
+                });
+            });
+
+            // --- 5️⃣ Таблица для графика
+            const chartSheet = workbook.addWorksheet("Диаграмма");
+            chartSheet.addRow(["УИК", "Количество"]);
+            statsData.forEach((row) => chartSheet.addRow([row.uikName, row.count]));
+
+            // --- 6️⃣ Отправка файла
+            res.setHeader(
+                "Content-Type",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            res.setHeader(
+                "Content-Disposition",
+                `attachment; filename="agitators_uik_5076-5082.xlsx"`
+            );
+
+            await workbook.xlsx.write(res);
+            res.end();
+        } catch (error) {
+            console.error("Ошибка при экспорте:", error);
+            res.status(500).json({ message: "Ошибка при генерации файла" });
+        }
+    },
+
+    async reset (req:AuthRequest, res:Response){
+        try {
+            const phone = req.body
+            const user = await UserService.resetPassword(phone.phone)
+            res.json(user)
+        }catch (arr:any){
+            res.status(400).json({message:arr.message})
+        }
+
+    }
 };

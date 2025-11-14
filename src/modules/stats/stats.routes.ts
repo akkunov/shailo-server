@@ -17,5 +17,6 @@ router.get("/all", authMiddleware, roleMiddleware(["ADMIN", "COORDINATOR"]), Sta
 
 // новая — агрегация для графиков
 router.get("/aggregate", authMiddleware, roleMiddleware(["ADMIN", "COORDINATOR"]), StatsController.aggregate);
+router.get("/getStat", authMiddleware, roleMiddleware(["ADMIN", "COORDINATOR"]), StatsController.getAgitatorStats);
 
 export default router;

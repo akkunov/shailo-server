@@ -12,6 +12,7 @@ router.get("/uik/:code", authMiddleware, VoterController.listByUik);
 router.put("/:id", authMiddleware, VoterController.update);
 router.delete("/:id", authMiddleware, VoterController.remove);
 router.get("/voterExcel", VoterController.exportVotersByUIK);
+router.get("/summ", VoterController.votersSum);
 router.get("/Search", authMiddleware, VoterController.SearchVoters);
 
 export default router;
