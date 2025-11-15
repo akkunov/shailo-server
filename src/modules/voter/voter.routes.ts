@@ -14,5 +14,6 @@ router.delete("/:id", authMiddleware, VoterController.remove);
 router.get("/voterExcel", VoterController.exportVotersByUIK);
 router.get("/summ", VoterController.votersSum);
 router.get("/Search", authMiddleware, VoterController.SearchVoters);
+router.get("/byAgitator/:id",authMiddleware, roleMiddleware(['ADMIN']),VoterController.voterByAgitatorId);
 
 export default router;

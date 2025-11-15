@@ -88,5 +88,10 @@ export const VoterService = {
             take,
             orderBy: { lastName: "asc" },
         });
+    },
+    async voterByAgitatorId (id:number){
+        const user = await prisma.voter.findMany({ where: { addedById: id } });
+        if (!user) throw new Error("Нет данных");
+        return user
     }
 };

@@ -167,6 +167,15 @@ export const VoterController = {
             console.error("Ошибка при экспорте избирателей:", error);
             res.status(500).json({ message: "Ошибка при генерации файла" });
         }
-    }
+    },
+    async voterByAgitatorId (req:AuthRequest, res:Response){
+        try {
+            const id = Number(req.params.id);
+            const user = await VoterService.voterByAgitatorId(id)
+            return res.json(user)
 
+        }catch (error:any){
+            res.status(400).json({ message: error.message});
+        }
+    }
 };
