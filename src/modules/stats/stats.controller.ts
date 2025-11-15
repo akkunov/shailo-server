@@ -80,13 +80,20 @@ export const StatsController = {
     async getAgitatorStats(req: AuthRequest, res: Response) {
         try {
             const { skip, take, coordinatorId, uikFilter, dateFrom, dateTo } = req.query;
-
+            const data = uikFilter
+                ? (Array.isArray(uikFilter)
+                        ? uikFilter
+                        : String(uikFilter).split(",")
+                )
+                    .map((v) => Number(v))
+                    .filter((n) => !isNaN(n))
+                : undefined;
             // Приведение типов
             const query = {
                 skip: Number(skip) || 0,
                 take: Number(take) || 10,
                 coordinatorId: coordinatorId ? Number(coordinatorId) : undefined,
-                uikFilter: uikFilter ? (Array.isArray(uikFilter) ? uikFilter.map(Number) : [Number(uikFilter)]) : undefined,
+                uikFilter: data,
                 dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
                 dateTo: dateTo ? new Date(dateTo as string) : undefined,
             };

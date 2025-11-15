@@ -338,7 +338,7 @@ export const UserController = {
      async exportAgitatorsBySpecificUIKs (req: AuthRequest, res: Response) {
         try {
             // 🔹 Целевые УИКи
-            const targetUikCodes = [5497,5070,5071,5072,5073,5074,5075,5455,5437];
+            const targetUikCodes = [5532,5494,5457,5116,5115,5114,5113,5112,5111];
 
             // 🔹 Получаем агитаторов и их УИКи
             const users = await prisma.user.findMany({

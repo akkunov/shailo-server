@@ -22,6 +22,7 @@ export const StatsService = {
         } = query;
 
         // 1️⃣ Общий фильтр для подсчёта totalAgitators с учётом фильтров
+        console.log(uikFilter)
         const baseFilter: any = {
             role: "AGITATOR",
             coordinatorId: coordinatorId || undefined,
@@ -51,11 +52,14 @@ export const StatsService = {
         });
 
         // 4️⃣ Общее количество избирателей для всех агитаторов с фильтрацией
-        const totalVoters = await prisma.voter.count();
+        const totalVoters = await prisma.voter.count({
+            where:{uikCode: {in: uikFilter}}
+        });
 
         // 5️⃣ Формируем результат
         const data = agitators.map(u => ({
             id: u.id,
+            phone:u.phone,
             name: `${u.lastName} ${u.firstName} ${u.middleName || ""}`.trim(),
             coordinator: u.coordinator
                 ? `${u.coordinator.lastName} ${u.coordinator.firstName}`
